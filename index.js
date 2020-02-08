@@ -67,7 +67,7 @@ watcher.on("koalament", (hex) => {
   const layer = splitted.shift();
   if (supported_layers.indexOf(layer) === -1) {
     console.log(`Unknown layer ${layer}`);
-
+    return;
   }
   const remained = splitted.join(" ");
   require(`./layers/${layer}`).decode(remained, (err, res) => {
