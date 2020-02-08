@@ -7,7 +7,6 @@ function encode(input, callback) {
 }
 
 function decode(input, callback) {
-  console.log(input)
   ungzip(Buffer.from(input, "base64")).then((decompressed) => {
     callback(undefined, decompressed.toString("utf8"));
   }).catch(callback)
