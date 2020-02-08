@@ -1,7 +1,7 @@
 const supported_layers = process.env.SUPPORTED_LAYERS.split(",");
 const MongoClient = require('mongodb').MongoClient;
 const watcher = require('socket.io-client')(process.env.WATCHER_HOST);
-const hex_decoder = require("raw-transaction-hex-decoder");
+var bitcoin = require('bitcoinjs-lib');
 let collection = null;
 const url = process.env.MONGO_COMMENT_STORE;
 MongoClient.connect(url, { useUnifiedTopology: true }, function (err, client) {
@@ -45,14 +45,23 @@ function read(key, from, limit, callback) {
   })
 }
 
-watcher.on("koalament", (tx) => {
-  let decodedTx = hex_decoder.decodeRawUTXO(tx.hex);
-  const s = new Buffer(decodedTx.outs[0].script.split(" ").pop(), 'hex').toString('utf8');
-  const splitted = s.split(" ");
+watcher.on("koalament", (hex) => {
+  let decodedTx = undefined;
+  try {
+    decodedTx = bitcoin.Transaction.fromHex(hex);
+  } catch (e) {
+    consoleLogger.error(e);
+  }
+  if (!decodedTx) {
+    return;
+  }
+  const hexSplitted = bitcoin.script.toASM(decodedTx.outs[0].script).toString().split(" ");
+  if (hexSplitted.length < 2) {
+    return;
+  }
+  const splitted = new Buffer(hexSplitted[2], "hex").toString("utf8").split(" ");
   const label = splitted.shift();
   if (label !== "koalament") {
-    console.log(`Unknown label ${label}`);
-
     return;
   }
   const layer = splitted.shift();
@@ -68,14 +77,15 @@ watcher.on("koalament", (tx) => {
       return;
     }
     const data = { ...{ _layer: layer }, ...res, ...{ created_at: new Date() } };
-    collection.insertOne({ ...{ _id: tx.txid }, ...data }, (err) => {
+    collection.insertOne({ ...{ _id: decodedTx.getId() }, ...data }, (err) => {
       if (err) {
         console.log(err);
 
         return;
       }
       supported_layers.forEach(layer_version => {
-        io.sockets.emit(Buffer.from(`${data.key}_${layer_version}`).toString("base64"), { ...{ _txid: tx.txid }, ...data });
+        console.log({ ...{ _txid: decodedTx.getId() }, ...data })
+        io.sockets.emit(Buffer.from(`${data.key}_${layer_version}`).toString("base64"), { ...{ _txid: decodedTx.getId() }, ...data });
       });
     });
 
