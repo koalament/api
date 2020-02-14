@@ -1,10 +1,11 @@
 const supported_layers = process.env.SUPPORTED_LAYERS.split(",");
 const MongoClient = require('mongodb').MongoClient;
 const watcher = require('socket.io-client')(process.env.WATCHER_HOST);
-var bitcoin = require('bitcoinjs-lib');
+const bitcoin = require('bitcoinjs-lib');
+const url = require("url");
+
 let collection = null;
-const url = process.env.MONGO_COMMENT_STORE;
-MongoClient.connect(url, { useUnifiedTopology: true }, function (err, client) {
+MongoClient.connect(process.env.MONGO_COMMENT_STORE, { useUnifiedTopology: true }, function (err, client) {
   if (err) {
     throw err;
   }
@@ -85,7 +86,10 @@ watcher.on("koalament", (hex) => {
       }
       supported_layers.forEach(layer_version => {
         console.log({ ...{ _txid: decodedTx.getId() }, ...data })
-        io.sockets.emit(Buffer.from(`${data.key}_${layer_version}`).toString("base64"), { ...{ _txid: decodedTx.getId() }, ...data });
+        const emit_data = { ...{ _txid: decodedTx.getId() }, ...data };
+        io.sockets.emit(Buffer.from(`${data.key}_${layer_version}`).toString("base64"), emit_data);
+        io.sockets.emit(Buffer.from(`site:${url.parse(data.key).host}_${layer_version}`).toString("base64"), emit_data);
+        io.sockets.emit(Buffer.from(`site:all_${layer_version}`).toString("base64"), emit_data);
       });
     });
 
