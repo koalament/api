@@ -3,6 +3,9 @@ const MongoClient = require('mongodb').MongoClient;
 const watcher = require('socket.io-client')(process.env.WATCHER_HOST);
 const bitcoin = require('bitcoinjs-lib');
 const url = require("url");
+const layers = {
+  layer1: require("koalament-layers").layer1
+}
 
 let collection = null;
 MongoClient.connect(process.env.MONGO_COMMENT_STORE, { useUnifiedTopology: true }, function (err, client) {
@@ -71,7 +74,7 @@ watcher.on("koalament", (hex) => {
     return;
   }
   const remained = splitted.join(" ");
-  require(`./layers/${layer}`).decode(remained, (err, res) => {
+  layers[`layer${layer}`].decode(remained, (err, res) => {
     if (err) {
       console.log(err);
 
