@@ -16,10 +16,10 @@ const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: "info" 
 function pipe(_txid: string, data: IComment, callback: (err: Error) => void): void {
   consoleLogger.info(_txid, data);
   switch (data._method) {
-    case 0: dataSource.insertComment(_txid, data.key, data.text, data.created_at, data._layer, callback); break;
-    case 1: dataSource.replyComment(_txid, data.key, data.text, data.created_at, data._layer, callback); break;
+    case 0: dataSource.insertComment(_txid, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
+    case 1: dataSource.replyComment(_txid, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
     case 2: dataSource.clapComment(_txid, data.key, callback); break;
-    case 3: dataSource.reportComment(_txid, data.key, data.text, data.created_at, data._layer, callback); break;
+    case 3: dataSource.reportComment(_txid, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
     default: callback(new Error('Unknown method "data._method"'));
   }
 }
@@ -39,7 +39,7 @@ function onHex(hex: string): void {
   if (hexSplitted.length < 2) {
     return;
   }
-  const splitted: string[] = new Buffer(hexSplitted[2], "hex").toString("utf8").split(" ");
+  const splitted: string[] = Buffer.from(hexSplitted[2], "hex").toString("utf8").split(" ");
   const label: string = splitted.shift();
   if (label !== "koalament") {
     return;

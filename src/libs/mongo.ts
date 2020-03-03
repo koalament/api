@@ -50,26 +50,32 @@ export class MongoDataSource {
     });
   }
 
-  public insertComment(txid: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {
+  public insertComment(txid: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {
     const comment: IMongoComment = { _id: txid, key, text, created_at: createdAt, _layer: layer };
+    if (nickname) {
+      comment.nickname = nickname;
+    }
     this.commentsCollection.insertOne(comment, callback);
   }
 
   public clapComment(txid: string, key: string, callback: (err: Error) => void): void {
     this.commentsCollection.updateOne({ _id: key }, { $addToSet: { claps: txid } }, callback);
   }
-  public replyComment(txid: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {
+  public replyComment(txid: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {
     this.commentsCollection.updateOne({ _id: key }, { $addToSet: { replies: txid } }, (err: Error) => {
       if (err) {
         callback(err);
 
         return;
       }
-      this.insertComment(txid, key, text, createdAt, layer, callback);
+      this.insertComment(txid, nickname, key, text, createdAt, layer, callback);
     });
   }
-  public reportComment(txid: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {
+  public reportComment(txid: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {
     const reportComment: IMongoComment = { _id: txid, key: key, text: text, created_at: createdAt, _layer: layer };
+    if (nickname) {
+      reportComment.nickname = nickname;
+    }
     this.commentsCollection.updateOne({ _id: key }, { $push: { reports: reportComment } }, callback);
   }
 }

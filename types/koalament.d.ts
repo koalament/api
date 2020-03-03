@@ -5,6 +5,7 @@ export interface IPaginationResult<T> {
 export interface IMongoComment {
   _id: string;
   _layer: number;
+  nickname?: string;
   key: string;
   text: string;
   replies?: string[];
@@ -16,6 +17,7 @@ export interface IComment {
   _txid: string;
   _layer: number;
   _method?: number;
+  nickname?: string;
   key?: string;
   text: string;
   replies?: IPaginationResult<any>;
@@ -24,6 +26,7 @@ export interface IComment {
 }
 
 export interface IReadCommentsReadParams {
+  nickname?: string;
   key: string;
   from: number;
   limit: number;
