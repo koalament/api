@@ -5,6 +5,7 @@ import { layer2 } from "koalament-layers";
 import Tracer from "tracer";
 import url from "url";
 import Http from "http";
+import Express, { NextFunction } from "express";
 import { MongoDataSource } from "./libs/mongo";
 import { IComment, IReadCommentsReadParams, IPaginationResult } from "../types/koalament";
 import { ILayer2Params } from "koalament-layers/dist/Layer2";
@@ -12,7 +13,7 @@ const supported_layers: number[] = process.env.SUPPORTED_LAYERS.split(",").map((
 const watcher: SocketIOClient.Socket = IOS(process.env.WATCHER_HOST);
 const dataSource: MongoDataSource = new MongoDataSource(process.env.MONGO_COMMENT_STORE);
 const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: "info" });
-
+const app: Express.Application = Express();
 function pipe(_txid: string, data: IComment, callback: (err: Error) => void): void {
   consoleLogger.info(_txid, data);
   switch (data._method) {
@@ -22,6 +23,10 @@ function pipe(_txid: string, data: IComment, callback: (err: Error) => void): vo
     case 3: dataSource.reportComment(_txid, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
     default: callback(new Error('Unknown method "data._method"'));
   }
+}
+
+function isReady(): boolean {
+  return dataSource.isReady();
 }
 
 function onHex(hex: string): void {
@@ -77,18 +82,11 @@ watcher.on("koalament", (hex: string) => {
   onHex(hex);
 });
 
-const index: string = "<html><body>Listening</body></html>";
-
 const PORT: number = parseInt(process.env.EXPRESS_PORT, 10);
 const HOST: string = "0.0.0.0";
 
-// send html content to all requests
-const app: Http.Server = Http.createServer((req: Http.IncomingMessage, res: Http.ServerResponse) => {
-  res.writeHead(200, { "Content-Type": "text/html" });
-  res.end(index);
-});
-
-const io: IO.Server = IO.listen(app);
+const server: Http.Server = Http.createServer(app);
+const io: IO.Server = IO.listen(server);
 
 io.sockets.on("connection", (socket: IO.Socket) => {
   console.log("CLIENTS ", Object.keys(io.sockets.connected).length);
@@ -113,12 +111,20 @@ io.sockets.on("connection", (socket: IO.Socket) => {
   });
 });
 
-app.listen(PORT, HOST);
+app.get("/readiness", (req: Express.Request, res: Express.Response, next: NextFunction) => {
+  if (isReady()) {
+    res.sendStatus(200);
+  } else {
+    res.send(500);
+  }
+  next();
+});
 
-console.log(`Server running at ${HOST}:${PORT}/`);
+app.get("/liveness", (req: Express.Request, res: Express.Response, next: NextFunction) => {
+  res.sendStatus(200);
+  next();
+});
 
-// setTimeout(() => {
-//   dataSource.comments("https://koalament.io/", 0, 20, (err: Error, res: IPaginationResult<IComment>) => {
-//     console.log(err, res.results);
-//   });
-// }, 1000);
+server.listen(PORT, HOST, () => {
+  console.log(`Server running at ${HOST}:${PORT}/`);
+});
