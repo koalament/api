@@ -41,6 +41,7 @@ export class MongoDataSource {
                 _txid: p._id,
                 _layer: p._layer,
                 text: p.text,
+                nickname: p.nickname || "unknown",
                 replies: p.replies ? { results: [], total: p.replies.length } : { results: [], total: 0 },
                 claps: p.claps ? { results: [], total: p.claps.length } : { results: [], total: 0 },
                 created_at: p.created_at
