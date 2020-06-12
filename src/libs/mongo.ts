@@ -25,7 +25,7 @@ export class MongoDataSource {
 
         return;
       }
-      this.commentsCollection.find<IMongoComment>({ key: key }, { skip: from, limit: limit })
+      this.commentsCollection.find<IMongoComment>({ key: key }, { skip: from, limit: limit || parseInt(process.env.MONGO_DEFAULT_READ_COMMENTS_LIMIT, 10) })
         .sort({ created_at: 1 })
         .toArray((err: Error, comments: IMongoComment[]) => {
           if (err) {
