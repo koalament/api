@@ -44,6 +44,7 @@ export class MongoDataSource {
                 nickname: p.nickname || "unknown",
                 replies: p.replies ? { results: [], total: p.replies.length } : { results: [], total: 0 },
                 claps: p.claps ? { results: [], total: p.claps.length } : { results: [], total: 0 },
+                boos: p.boos ? { results: [], total: p.boos.length } : { results: [], total: 0 },
                 created_at: p.created_at
               }))
           });
@@ -61,6 +62,9 @@ export class MongoDataSource {
 
   public clapComment(txid: string, key: string, callback: (err: Error) => void): void {
     this.commentsCollection.updateOne({ _id: key }, { $addToSet: { claps: txid } }, callback);
+  }
+  public booComment(txid: string, key: string, callback: (err: Error) => void): void {
+    this.commentsCollection.updateOne({ _id: key }, { $addToSet: { boos: txid } }, callback);
   }
   public replyComment(txid: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {
     this.commentsCollection.updateOne({ _id: key }, { $addToSet: { replies: txid } }, (err: Error) => {

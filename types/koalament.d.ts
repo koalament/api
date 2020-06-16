@@ -10,6 +10,7 @@ export interface IMongoComment {
   text: string;
   replies?: string[];
   claps?: string[];
+  boos?: string[];
   created_at: Date;
 }
 
@@ -22,6 +23,7 @@ export interface IComment {
   text: string;
   replies?: IPaginationResult<any>;
   claps?: IPaginationResult<any>;
+  boos?: IPaginationResult<any>;
   created_at: Date;
 }
 
