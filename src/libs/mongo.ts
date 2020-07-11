@@ -18,15 +18,16 @@ export class MongoDataSource {
       this.ready = true;
     });
   }
-  public comments(key: string, from: number, limit: number, callback: (err: Error, comments?: IPaginationResult<IComment>) => void): void {
-    this.commentsCollection.find({ key: key }).count((err: Error, count: number) => {
+  public comments(key: string, scrollId: string, limit: number, callback: (err: Error, comments?: IPaginationResult<IComment>) => void): void {
+    const fromDate: Date = scrollId ? new Date(parseInt(Buffer.from(scrollId, "base64").toString("ascii"), 10)) : new Date();
+    this.commentsCollection.find({ $and: [{ key: key }, { created_at: { $lt: fromDate } }] }).count((err: Error, count: number) => {
       if (err) {
         callback(err);
 
         return;
       }
-      this.commentsCollection.find<IMongoComment>({ key: key }, { skip: from, limit: limit || parseInt(process.env.MONGO_DEFAULT_READ_COMMENTS_LIMIT, 10) })
-        .sort({ created_at: 1 })
+      this.commentsCollection.find<IMongoComment>({ $and: [{ key: key }, { created_at: { $lt: fromDate } }] }, { limit: limit || parseInt(process.env.MONGO_DEFAULT_READ_COMMENTS_LIMIT, 10) })
+        .sort({ created_at: -1 })
         .toArray((err: Error, comments: IMongoComment[]) => {
           if (err) {
             console.log(err);
@@ -34,8 +35,13 @@ export class MongoDataSource {
 
             return;
           }
+          let scrollId: string;
+          if (comments.length > 0) {
+            scrollId = Buffer.from(comments[0].created_at.getTime().toString(), "ascii").toString("base64").replace(/=/g, "");
+          }
           callback(undefined, {
             total: count,
+            scrollId,
             results: comments.map((p: IMongoComment) =>
               ({
                 _txid: p._id,

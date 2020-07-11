@@ -95,7 +95,7 @@ io.sockets.on("connection", (socket: IO.Socket) => {
   console.log("CLIENTS ", Object.keys(io.sockets.connected).length);
   console.log("User connected.");
   socket.on("read", (input: IReadCommentsReadParams, callback: (err: Error, comments?: IPaginationResult<IComment>) => void) => {
-    dataSource.comments(input.key, input.from, input.limit, (err: Error, readResult: IPaginationResult<IComment>) => {
+    dataSource.comments(input.key, input.scrollId, input.limit, (err: Error, readResult: IPaginationResult<IComment>) => {
       if (err) {
         console.log(err);
         callback(err);

@@ -1,5 +1,6 @@
 export interface IPaginationResult<T> {
   total: number;
+  scrollId?: string;
   results: T[];
 }
 export interface IMongoComment {
@@ -30,6 +31,6 @@ export interface IComment {
 export interface IReadCommentsReadParams {
   nickname?: string;
   key: string;
-  from: number;
+  scrollId: string;
   limit: number;
 }
