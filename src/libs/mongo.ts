@@ -37,7 +37,7 @@ export class MongoDataSource {
           }
           let scrollId: string;
           if (comments.length > 0) {
-            scrollId = Buffer.from(comments[0].created_at.getTime().toString(), "ascii").toString("base64").replace(/=/g, "");
+            scrollId = Buffer.from(comments[comments.length - 1].created_at.getTime().toString(), "ascii").toString("base64").replace(/=/g, "");
           }
           callback(undefined, {
             total: count,
