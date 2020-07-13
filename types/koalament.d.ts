@@ -1,5 +1,6 @@
 export interface IPaginationResult<T> {
   total: number;
+  remained: number;
   scrollId?: string;
   results: T[];
 }
