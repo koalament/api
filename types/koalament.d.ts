@@ -7,6 +7,7 @@ export interface IPaginationResult<T> {
 export interface IMongoComment {
   _id: string;
   _layer: number;
+  address: string;
   nickname?: string;
   key: string;
   text: string;
@@ -23,6 +24,7 @@ export interface IComment {
   nickname?: string;
   key?: string;
   text: string;
+  address: string;
   replies?: IPaginationResult<any>;
   claps?: IPaginationResult<any>;
   boos?: IPaginationResult<any>;

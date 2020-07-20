@@ -1,6 +1,6 @@
 import IOS from "socket.io-client";
 import IO from "socket.io";
-import { Transaction, script } from "bitcoinjs-lib";
+import { Transaction } from "bsv";
 import { layer2 } from "koalament-layers";
 import Tracer from "tracer";
 import url from "url";
@@ -13,30 +13,44 @@ const watcher: SocketIOClient.Socket = IOS(process.env.WATCHER_HOST);
 const dataSource: MongoDataSource = new MongoDataSource(process.env.MONGO_COMMENT_STORE);
 const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: "info" });
 
-function pipe(_txid: string, data: IComment, callback: (err: Error) => void): void {
+function pipe(_txid: string, address: string, data: IComment, callback: (err: Error) => void): void {
   consoleLogger.info(_txid, data);
   switch (data._method) {
-    case 0: dataSource.insertComment(_txid, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
-    case 1: dataSource.replyComment(_txid, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
+    case 0: dataSource.insertComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
+    case 1: dataSource.replyComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
     case 2: dataSource.clapComment(_txid, data.key, callback); break;
     case 3: dataSource.booComment(_txid, data.key, callback); break;
-    case 4: dataSource.reportComment(_txid, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
+    case 4: dataSource.reportComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
     default: callback(new Error('Unknown method "data._method"'));
   }
 }
+
+const index: string = "<html><body>Listening</body></html>";
+
+const PORT: number = parseInt(process.env.EXPRESS_PORT, 10);
+const HOST: string = "0.0.0.0";
+
+// send html content to all requests
+const app: Http.Server = Http.createServer((req: Http.IncomingMessage, res: Http.ServerResponse) => {
+  res.writeHead(200, { "Content-Type": "text/html" });
+  res.end(index);
+});
+
+const io: IO.Server = IO.listen(app);
 
 function onHex(hex: string): void {
   const createdAt: Date = new Date();
   let decodedTx: Transaction;
   try {
-    decodedTx = Transaction.fromHex(hex);
+    decodedTx = new Transaction(hex);
   } catch (e) {
     consoleLogger.error(e);
   }
   if (!decodedTx) {
     return;
   }
-  const hexSplitted: string[] = script.toASM(decodedTx.outs[0].script).toString().split(" ");
+  const address: string = decodedTx.inputs[0].script.toAddress().toString();
+  const hexSplitted: string[] = decodedTx.outputs[0].script.toASM().split(" ");
   if (hexSplitted.length < 2) {
     return;
   }
@@ -52,9 +66,8 @@ function onHex(hex: string): void {
 
       return;
     }
-
-    const txid: string = decodedTx.getId();
-    pipe(txid, { ...data, ...{ created_at: createdAt } }, (err: Error) => {
+    const txid: string = decodedTx.id;
+    pipe(txid, address, { ...data, ...{ created_at: createdAt } }, (err: Error) => {
       if (err) {
         consoleLogger.error(err);
 
@@ -77,19 +90,6 @@ function onHex(hex: string): void {
 watcher.on("koalament", (hex: string) => {
   onHex(hex);
 });
-
-const index: string = "<html><body>Listening</body></html>";
-
-const PORT: number = parseInt(process.env.EXPRESS_PORT, 10);
-const HOST: string = "0.0.0.0";
-
-// send html content to all requests
-const app: Http.Server = Http.createServer((req: Http.IncomingMessage, res: Http.ServerResponse) => {
-  res.writeHead(200, { "Content-Type": "text/html" });
-  res.end(index);
-});
-
-const io: IO.Server = IO.listen(app);
 
 io.sockets.on("connection", (socket: IO.Socket) => {
   console.log("CLIENTS ", Object.keys(io.sockets.connected).length);
@@ -117,9 +117,3 @@ io.sockets.on("connection", (socket: IO.Socket) => {
 app.listen(PORT, HOST);
 
 console.log(`Server running at ${HOST}:${PORT}/`);
-
-// setTimeout(() => {
-//   dataSource.comments("https://koalament.io/", 0, 20, (err: Error, res: IPaginationResult<IComment>) => {
-//     console.log(err, res.results);
-//   });
-// }, 1000);
