@@ -20,19 +20,27 @@ export class MongoDataSource {
   }
   public comments(key: string, scrollId: string, limit: number, callback: (err: Error, comments?: IPaginationResult<IComment>) => void): void {
     const fromDate: Date = scrollId ? new Date(parseInt(Buffer.from(scrollId, "base64").toString("ascii"), 10)) : new Date();
-    this.commentsCollection.find({ key: key }).count((err: Error, total: number) => {
+    const keys: string[] = [key];
+    if (new RegExp("(https?:\/\/)?([\da-z\.-]+)\.([a-z]{2,6})([\/\w\.-]*)*\/?").test(key)) {
+      if (key[key.length - 1] === "/") {
+        keys.push(key.slice(0, key.length - 1));
+      } else {
+        keys.push(key + "/");
+      }
+    }
+    this.commentsCollection.find({ key: { $in: keys } }).count((err: Error, total: number) => {
       if (err) {
         callback(err);
 
         return;
       }
-      this.commentsCollection.find({ $and: [{ key: key }, { created_at: { $lt: fromDate } }] }).count((err: Error, totalFromHere: number) => {
+      this.commentsCollection.find({ $and: [{ key: { $in: keys } }, { created_at: { $lt: fromDate } }] }).count((err: Error, totalFromHere: number) => {
         if (err) {
           callback(err);
 
           return;
         }
-        this.commentsCollection.find<IMongoComment>({ $and: [{ key: key }, { created_at: { $lt: fromDate } }] }, { limit: limit || parseInt(process.env.MONGO_DEFAULT_READ_COMMENTS_LIMIT, 10) })
+        this.commentsCollection.find<IMongoComment>({ $and: [{ key: { $in: keys } }, { created_at: { $lt: fromDate } }] }, { limit: limit || parseInt(process.env.MONGO_DEFAULT_READ_COMMENTS_LIMIT, 10) })
           .sort({ created_at: -1 })
           .toArray((err: Error, comments: IMongoComment[]) => {
             if (err) {
