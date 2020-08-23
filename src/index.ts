@@ -50,7 +50,16 @@ function onHex(hex: string): void {
     return;
   }
   const address: string = decodedTx.inputs[0].script.toAddress().toString();
-  const hexSplitted: string[] = decodedTx.outputs[0].script.toASM().split(" ");
+  let opOutput: string;
+  decodedTx.outputs.forEach((out: Transaction.Output) => {
+    if (out.satoshis === 0 && out.script.toASM().indexOf("0 OP_RETURN") === 0) {
+      opOutput = out.script.toASM();
+    }
+  });
+  if (!opOutput) {
+    return;
+  }
+  const hexSplitted: string[] = opOutput.split(" ");
   if (hexSplitted.length < 2) {
     return;
   }
