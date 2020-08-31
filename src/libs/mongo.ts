@@ -107,4 +107,32 @@ export class MongoDataSource {
     }
     this.commentsCollection.updateOne({ _id: key }, { $push: { reports: reportComment } }, callback);
   }
+
+  public commentById(txId: string, callback: (err: Error, comment?: IComment) => void): void {
+    this.commentsCollection.findOne<IMongoComment>({ _id: txId }, (err: Error, comment: IMongoComment) => {
+      if (err) {
+        callback(err);
+
+        return;
+      }
+      if (!comment) {
+        callback(undefined, undefined);
+
+        return;
+      }
+
+      callback(undefined, {
+        _txid: comment._id,
+        _layer: comment._layer,
+        key: comment.key,
+        text: comment.text,
+        nickname: comment.nickname || "unknown",
+        address: comment.address,
+        replies: comment.replies ? { results: [], total: comment.replies.length, remained: comment.replies.length } : { results: [], total: 0, remained: 0 },
+        claps: comment.claps ? { results: [], total: comment.claps.length, remained: comment.claps.length } : { results: [], total: 0, remained: 0 },
+        boos: comment.boos ? { results: [], total: comment.boos.length, remained: comment.boos.length } : { results: [], total: 0, remained: 0 },
+        created_at: comment.created_at
+      });
+    });
+  }
 }

@@ -82,6 +82,20 @@ function onHex(hex: string): void {
 
         return;
       }
+      dataSource.commentById((data as { key: string }).key, (err: Error, comment: IComment) => {
+        if (err) {
+          consoleLogger.error(err);
+        }
+        if (comment) {
+          supported_layers.forEach((layer_version: number) => {
+            const layer_data: any = layer2.downgrade(comment as ILayer2Params, layer_version);
+            if (layer_data !== undefined) {
+              const emit_data: any = { ...{ _txid: txid, address: address, boos: [], claps: [], replies: [] }, ...layer_data, ...{ created_at: createdAt }, updated: true };
+              io.sockets.emit(Buffer.from(`${comment.key}_${layer_version}`).toString("base64"), emit_data);
+            }
+          });
+        }
+      });
       supported_layers.forEach((layer_version: number) => {
         const layer_data: any = layer2.downgrade(data as ILayer2Params, layer_version);
         if (layer_data !== undefined) {
