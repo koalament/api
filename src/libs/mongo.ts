@@ -28,19 +28,19 @@ export class MongoDataSource {
         keys.push(key + "/");
       }
     }
-    this.commentsCollection.find({ key: { $in: keys } }).count((err: Error, total: number) => {
+    this.commentsCollection.find({ $and: [{ key: { $in: keys } }, { flag: { $ne: true } }] }).count((err: Error, total: number) => {
       if (err) {
         callback(err);
 
         return;
       }
-      this.commentsCollection.find({ $and: [{ key: { $in: keys } }, { created_at: { $lt: fromDate } }] }).count((err: Error, totalFromHere: number) => {
+      this.commentsCollection.find({ $and: [{ key: { $in: keys } }, { created_at: { $lt: fromDate } }, { flag: { $ne: true } }] }).count((err: Error, totalFromHere: number) => {
         if (err) {
           callback(err);
 
           return;
         }
-        this.commentsCollection.find<IMongoComment>({ $and: [{ key: { $in: keys } }, { created_at: { $lt: fromDate } }] }, { limit: limit || parseInt(process.env.MONGO_DEFAULT_READ_COMMENTS_LIMIT, 10) })
+        this.commentsCollection.find<IMongoComment>({ $and: [{ key: { $in: keys } }, { created_at: { $lt: fromDate } }, { flag: { $ne: true } }] }, { limit: limit || parseInt(process.env.MONGO_DEFAULT_READ_COMMENTS_LIMIT, 10) })
           .sort({ created_at: -1 })
           .toArray((err: Error, comments: IMongoComment[]) => {
             if (err) {
