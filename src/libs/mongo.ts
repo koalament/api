@@ -76,7 +76,7 @@ export class MongoDataSource {
     });
   }
 
-  public insertComment(txid: string, address: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {
+  public insertComment(txid: string, address: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, flag: boolean, callback: (err: Error) => void): void {
     const comment: IMongoComment = { _id: txid, key, text, address, created_at: createdAt, _layer: layer };
     if (nickname) {
       comment.nickname = nickname;
@@ -97,7 +97,7 @@ export class MongoDataSource {
 
         return;
       }
-      this.insertComment(txid, address, nickname, key, text, createdAt, layer, callback);
+      this.insertComment(txid, address, nickname, key, text, createdAt, layer, false, callback);
     });
   }
   public reportComment(txid: string, address: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {

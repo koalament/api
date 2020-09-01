@@ -1,5 +1,6 @@
 import IOS from "socket.io-client";
 import IO from "socket.io";
+import Url from "url-parse";
 import { Transaction } from "bsv";
 import { layer2 } from "koalament-layers";
 import Tracer from "tracer";
@@ -10,13 +11,32 @@ import { IComment, IReadCommentsReadParams, IPaginationResult } from "../types/k
 import { ILayer2Params } from "koalament-layers/dist/Layer2";
 const supported_layers: number[] = process.env.SUPPORTED_LAYERS.split(",").map((p: string) => parseInt(p, 10));
 const watcher: SocketIOClient.Socket = IOS(process.env.WATCHER_HOST);
+const ignoredDomainsExtension: string[] = (process.env.IGNORE_DOMAIN_EXTENSIONS || "").split(",").map((p: string) => p.trim());
+const ignoredDomains: string[] = (process.env.IGNORE_DOMAINS || "").split(",").map((p: string) => p.trim());
 const dataSource: MongoDataSource = new MongoDataSource(process.env.MONGO_COMMENT_STORE);
 const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: "info" });
 
 function pipe(_txid: string, address: string, data: IComment, callback: (err: Error) => void): void {
   consoleLogger.info(_txid, data);
   switch (data._method) {
-    case 0: dataSource.insertComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
+    case 0: {
+      const url: Url = new Url(data.key);
+      let flag: boolean = false;
+      if (url.hostname) {
+        ignoredDomainsExtension.forEach((ext: string): void => {
+          if (url.hostname.split(".").pop() === ext) {
+            flag = true;
+          }
+        });
+        ignoredDomains.forEach((domain: string): void => {
+          if (url.hostname === domain) {
+            flag = true;
+          }
+        });
+      }
+
+      dataSource.insertComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, flag, callback);
+    } break;
     case 1: dataSource.replyComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
     case 2: dataSource.clapComment(_txid, data.key, callback); break;
     case 3: dataSource.booComment(_txid, data.key, callback); break;
