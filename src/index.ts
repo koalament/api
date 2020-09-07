@@ -110,7 +110,7 @@ function onHex(hex: string): void {
           supported_layers.forEach((layer_version: number) => {
             const layer_data: any = layer2.downgrade(comment as ILayer2Params, layer_version);
             if (layer_data !== undefined) {
-              const emit_data: any = { ...{ _txid: comment._txid, address: address, boos: comment.boos, claps: comment.claps, replies: comment.replies }, ...layer_data, ...{ created_at: createdAt }, updated: true };
+              const emit_data: any = { ...{ _txid: comment._txid, address: address, boos: comment.boos, claps: comment.claps, replies: comment.replies }, ...layer_data, ...{ created_at: comment.created_at }, updated: true };
               io.sockets.emit(Buffer.from(`${comment.key}_${layer_version}`).toString("base64"), emit_data);
             }
           });
