@@ -1,6 +1,7 @@
 import { MongoClient, Collection } from "mongodb";
 
 import { IMongoComment, IComment, IPaginationResult } from "../../types/koalament";
+import { Utility } from "./utility";
 
 export class MongoDataSource {
   private commentsCollection: Collection;
@@ -20,14 +21,7 @@ export class MongoDataSource {
   }
   public comments(key: string, scrollId: string, limit: number, callback: (err: Error, comments?: IPaginationResult<IComment>) => void): void {
     const fromDate: Date = scrollId ? new Date(parseInt(Buffer.from(scrollId, "base64").toString("ascii"), 10)) : new Date();
-    const keys: string[] = [key];
-    if (new RegExp("(https?:\/\/)?([\da-z\.-]+)\.([a-z]{2,6})([\/\w\.-]*)*\/?").test(key)) {
-      if (key[key.length - 1] === "/") {
-        keys.push(key.slice(0, key.length - 1));
-      } else {
-        keys.push(key + "/");
-      }
-    }
+    const keys: string[] = Utility.multipleUrlAddress(key);
     this.commentsCollection.find({ $and: [{ key: { $in: keys } }, { flag: { $ne: true } }] }).count((err: Error, total: number) => {
       if (err) {
         callback(err);
