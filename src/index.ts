@@ -126,8 +126,10 @@ function onHex(hex: string): void {
           const emit_data: any = { ...{ _txid: txid, address: address, boos: [], claps: [], replies: [] }, ...layer_data, ...{ created_at: createdAt }, updated: false };
           consoleLogger.warn(layer_version, emit_data);
           io.sockets.emit(Buffer.from(`${data.key}_${layer_version}`).toString("base64"), emit_data);
-          io.sockets.emit(Buffer.from(`site:${url.parse(data.key).host}_${layer_version}`).toString("base64"), emit_data);
-          io.sockets.emit(Buffer.from(`site:all_${layer_version}`).toString("base64"), emit_data);
+          if (Utility.isUrl(data.key)) {
+            io.sockets.emit(Buffer.from(`site:${url.parse(data.key).host}_${layer_version}`).toString("base64"), emit_data);
+            io.sockets.emit(Buffer.from(`site:all_${layer_version}`).toString("base64"), emit_data);
+          }
         }
       });
     });
