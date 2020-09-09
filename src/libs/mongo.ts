@@ -10,14 +10,14 @@ export class MongoDataSource {
   public isReady(): boolean {
     return this.ready;
   }
-  public constructor(uri: string, fetchLimit: number) {
+  public constructor(uri: string, database: string, table: string, fetchLimit: number) {
     this.fetchLimit = fetchLimit;
     MongoClient.connect(uri, { useUnifiedTopology: true }, (err: Error, client: MongoClient) => {
       if (err) {
         throw err;
       }
       console.log("Connected successfully to server");
-      this.commentsCollection = client.db("koala").collection("ment");
+      this.commentsCollection = client.db(database).collection(table);
       this.ready = true;
     });
   }

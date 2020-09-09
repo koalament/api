@@ -15,7 +15,7 @@ import { ENV } from "./libs/env";
 
 const env: IEnv = new ENV().environmets;
 const watcher: SocketIOClient.Socket = IOS(env.WATCHER_HOST);
-const dataSource: MongoDataSource = new MongoDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DEFAULT_READ_COMMENTS_LIMIT);
+const dataSource: MongoDataSource = new MongoDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DATABASE_NAME, env.MONGO_TABLE_NAME, env.MONGO_DEFAULT_READ_COMMENTS_LIMIT);
 const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: env.LOG_LEVEL });
 
 function pipe(_txid: string, address: string, data: IComment, callback: (err: Error) => void): void {

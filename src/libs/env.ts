@@ -33,6 +33,8 @@ export class ENV {
         const env: IEnv = {
             LOG_LEVEL: ENV.Setter("LOG_LEVEL", "string"),
             MONGO_COMMENT_STORE: ENV.Setter("MONGO_COMMENT_STORE", "string"),
+            MONGO_DATABASE_NAME: ENV.Setter("MONGO_DATABASE_NAME", "string"),
+            MONGO_TABLE_NAME: ENV.Setter("MONGO_TABLE_NAME", "string"),
             MONGO_DEFAULT_READ_COMMENTS_LIMIT: parseInt(ENV.Setter("MONGO_DEFAULT_READ_COMMENTS_LIMIT", "number"), 10),
             SUPPORTED_LAYERS: ENV.Setter("SUPPORTED_LAYERS", "string").split(",").map((p: string) => parseInt(p, 10)).filter((p: number) => p),
             SUPPORTED_FORMATS: ENV.Setter("SUPPORTED_FORMATS", "string").split(",").map((p: string) => p.trim()).filter((p: string) => p !== ""),

@@ -1,6 +1,8 @@
 export interface IEnv {
     LOG_LEVEL: string;
     MONGO_COMMENT_STORE: string;
+    MONGO_DATABASE_NAME: string;
+    MONGO_TABLE_NAME: string;
     MONGO_DEFAULT_READ_COMMENTS_LIMIT: number;
     SUPPORTED_LAYERS: number[];
     SUPPORTED_FORMATS: string[];
