@@ -6,10 +6,12 @@ import { Utility } from "./utility";
 export class MongoDataSource {
   private commentsCollection: Collection;
   private ready: boolean = false;
+  private readonly fetchLimit: number;
   public isReady(): boolean {
     return this.ready;
   }
-  public constructor(uri: string) {
+  public constructor(uri: string, fetchLimit: number) {
+    this.fetchLimit = fetchLimit;
     MongoClient.connect(uri, { useUnifiedTopology: true }, (err: Error, client: MongoClient) => {
       if (err) {
         throw err;
@@ -34,7 +36,7 @@ export class MongoDataSource {
 
           return;
         }
-        this.commentsCollection.find<IMongoComment>({ $and: [{ key: { $in: keys } }, { created_at: { $lt: fromDate } }, { flag: { $ne: true } }] }, { limit: limit || parseInt(process.env.MONGO_DEFAULT_READ_COMMENTS_LIMIT, 10) })
+        this.commentsCollection.find<IMongoComment>({ $and: [{ key: { $in: keys } }, { created_at: { $lt: fromDate } }, { flag: { $ne: true } }] }, { limit: limit || this.fetchLimit })
           .sort({ created_at: -1 })
           .toArray((err: Error, comments: IMongoComment[]) => {
             if (err) {

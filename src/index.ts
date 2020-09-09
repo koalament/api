@@ -10,13 +10,13 @@ import { MongoDataSource } from "./libs/mongo";
 import { IComment, IReadCommentsReadParams, IPaginationResult } from "../types/koalament";
 import { ILayer2Params } from "koalament-layers/dist/Layer2";
 import { Utility } from "./libs/utility";
-const supported_layers: number[] = process.env.SUPPORTED_LAYERS.split(",").map((p: string) => parseInt(p, 10));
-const listeningOn: string = process.env.LISTENING_ON || "koalament";
-const watcher: SocketIOClient.Socket = IOS(process.env.WATCHER_HOST);
-const ignoredDomainsExtension: string[] = (process.env.IGNORE_DOMAIN_EXTENSIONS || "").split(",").map((p: string) => p.trim());
-const ignoredDomains: string[] = (process.env.IGNORE_DOMAINS || "").split(",").map((p: string) => p.trim());
-const dataSource: MongoDataSource = new MongoDataSource(process.env.MONGO_COMMENT_STORE);
-const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: "info" });
+import { IEnv } from "../types/iEnv";
+import { ENV } from "./libs/env";
+
+const env: IEnv = new ENV().environmets;
+const watcher: SocketIOClient.Socket = IOS(env.WATCHER_HOST);
+const dataSource: MongoDataSource = new MongoDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DEFAULT_READ_COMMENTS_LIMIT);
+const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: env.LOG_LEVEL });
 
 function pipe(_txid: string, address: string, data: IComment, callback: (err: Error) => void): void {
   consoleLogger.info(_txid, data);
@@ -25,12 +25,12 @@ function pipe(_txid: string, address: string, data: IComment, callback: (err: Er
       const url: Url = new Url(data.key);
       let flag: boolean = false;
       if (url.hostname) {
-        ignoredDomainsExtension.forEach((ext: string): void => {
+        env.IGNORE_DOMAIN_EXTENSIONS.forEach((ext: string): void => {
           if (url.hostname.split(".").pop() === ext) {
             flag = true;
           }
         });
-        ignoredDomains.forEach((domain: string): void => {
+        env.IGNORE_DOMAIN_EXTENSIONS.forEach((domain: string): void => {
           if (url.hostname === domain) {
             flag = true;
           }
@@ -48,9 +48,6 @@ function pipe(_txid: string, address: string, data: IComment, callback: (err: Er
 }
 
 const index: string = "<html><body>Listening</body></html>";
-
-const PORT: number = parseInt(process.env.EXPRESS_PORT, 10);
-const HOST: string = "0.0.0.0";
 
 // send html content to all requests
 const app: Http.Server = Http.createServer((req: Http.IncomingMessage, res: Http.ServerResponse) => {
@@ -111,7 +108,7 @@ function onHex(hex: string): void {
         if (comment) {
           const keys: string[] = Utility.multipleUrlAddress(comment.key);
           keys.forEach((key: string): void => {
-            supported_layers.forEach((layer_version: number) => {
+            env.SUPPORTED_LAYERS.forEach((layer_version: number) => {
               const layer_data: any = layer2.downgrade(comment as ILayer2Params, layer_version);
               if (layer_data !== undefined) {
                 const emit_data: any = { ...{ _txid: comment._txid, address: address, boos: comment.boos, claps: comment.claps, replies: comment.replies }, ...layer_data, ...{ created_at: comment.created_at }, updated: true };
@@ -121,7 +118,7 @@ function onHex(hex: string): void {
           });
         }
       });
-      supported_layers.forEach((layer_version: number) => {
+      env.SUPPORTED_LAYERS.forEach((layer_version: number) => {
         const layer_data: any = layer2.downgrade(data as ILayer2Params, layer_version);
         if (layer_data !== undefined) {
           const emit_data: any = { ...{ _txid: txid, address: address, boos: [], claps: [], replies: [] }, ...layer_data, ...{ created_at: createdAt }, updated: false };
@@ -136,7 +133,7 @@ function onHex(hex: string): void {
     });
   });
 }
-watcher.on(listeningOn, (hex: string) => {
+watcher.on(env.LISTENING_ON, (hex: string) => {
   onHex(hex);
 });
 
@@ -163,6 +160,6 @@ io.sockets.on("connection", (socket: IO.Socket) => {
   });
 });
 
-app.listen(PORT, HOST);
+app.listen(env.EXPRESS_PORT, env.EXPRESS_HOST);
 
-console.log(`Server running at ${HOST}:${PORT}/`);
+console.log(`Server running at ${env.EXPRESS_HOST}:${env.EXPRESS_PORT}/`);
