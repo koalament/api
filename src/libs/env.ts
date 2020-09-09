@@ -40,7 +40,7 @@ export class ENV {
             SUPPORTED_FORMATS: ENV.Setter("SUPPORTED_FORMATS", "string").split(",").map((p: string) => p.trim()).filter((p: string) => p !== ""),
             IGNORE_DOMAIN_EXTENSIONS: ENV.Setter("IGNORE_DOMAIN_EXTENSIONS", "string").split(",").map((p: string) => p.trim()).filter((p: string) => p !== ""),
             MAXIMUM_COMMENT_LENGTH_BYTES: parseInt(ENV.Setter("MAXIMUM_COMMENT_LENGTH_BYTES", "number"), 10),
-            MAXIMUM_NUCKNAME_LENGTH_BYTES: parseInt(ENV.Setter("MAXIMUM_NUCKNAME_LENGTH_BYTES", "number"), 10),
+            MAXIMUM_NICKNAME_LENGTH_BYTES: parseInt(ENV.Setter("MAXIMUM_NUCKNAME_LENGTH_BYTES", "number"), 10),
             IGNORE_DOMAINS: ENV.Setter("IGNORE_DOMAINS", "string").split(",").map((p: string) => p.trim()).filter((p: string) => p !== ""),
             LISTENING_ON: ENV.Setter("LISTENING_ON", "string"),
             EXPRESS_HOST: ENV.Setter("EXPRESS_HOST", "string"),

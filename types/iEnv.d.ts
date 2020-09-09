@@ -8,7 +8,7 @@ export interface IEnv {
     SUPPORTED_FORMATS: string[];
     IGNORE_DOMAIN_EXTENSIONS: string[];
     MAXIMUM_COMMENT_LENGTH_BYTES: number;
-    MAXIMUM_NUCKNAME_LENGTH_BYTES: number;
+    MAXIMUM_NICKNAME_LENGTH_BYTES: number;
     IGNORE_DOMAINS: string[];
     LISTENING_ON: string;
     EXPRESS_HOST: string;

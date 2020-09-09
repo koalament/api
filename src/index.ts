@@ -20,6 +20,16 @@ const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: env.LOG
 
 function pipe(_txid: string, address: string, data: IComment, callback: (err: Error) => void): void {
   consoleLogger.info(_txid, data);
+  if (data.nickname && data.nickname.length > env.MAXIMUM_NICKNAME_LENGTH_BYTES) {
+    callback(new Error("Maximum nickname length exceeded."));
+
+    return;
+  }
+  if (data.text && data.text.length > env.MAXIMUM_COMMENT_LENGTH_BYTES) {
+    callback(new Error("Maximum text length exceeded."));
+
+    return;
+  }
   switch (data._method) {
     case 0: {
       const url: Url = new Url(data.key);
