@@ -11,6 +11,7 @@ import { IComment, IReadCommentsReadParams, IPaginationResult } from "../types/k
 import { ILayer2Params } from "koalament-layers/dist/Layer2";
 import { Utility } from "./libs/utility";
 const supported_layers: number[] = process.env.SUPPORTED_LAYERS.split(",").map((p: string) => parseInt(p, 10));
+const listeningOn: string = process.env.LISTENING_ON || "koalament";
 const watcher: SocketIOClient.Socket = IOS(process.env.WATCHER_HOST);
 const ignoredDomainsExtension: string[] = (process.env.IGNORE_DOMAIN_EXTENSIONS || "").split(",").map((p: string) => p.trim());
 const ignoredDomains: string[] = (process.env.IGNORE_DOMAINS || "").split(",").map((p: string) => p.trim());
@@ -135,8 +136,7 @@ function onHex(hex: string): void {
     });
   });
 }
-
-watcher.on("koalament", (hex: string) => {
+watcher.on(listeningOn, (hex: string) => {
   onHex(hex);
 });
 
