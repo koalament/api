@@ -37,3 +37,41 @@ export interface IReadCommentsReadParams {
   scrollId: string;
   limit: number;
 }
+
+export interface IFollowParams {
+  userId: string;
+  key: string;
+}
+
+export interface IInboxParams {
+  userId: string;
+  scrollId: string;
+  limit: number;
+}
+
+export interface IMarkAsReadParams {
+  userId: string;
+  scrollId: string;
+}
+
+export interface IMongoFollow {
+  _id: string;
+  user_id: string;
+  key: string;
+  created_at: Date;
+}
+
+export interface IMongoInbox {
+  _id: string;
+  user_id: string;
+  action: string;
+  action_key: string;
+  description: string;
+  created_at: Date;
+}
+
+export interface IInboxMessage {
+  action: string;
+  text: string;
+  date: Date;
+}

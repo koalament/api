@@ -7,15 +7,17 @@ import Tracer from "tracer";
 import url from "url";
 import Http from "http";
 import { MongoDataSource } from "./libs/mongo";
-import { IComment, IReadCommentsReadParams, IPaginationResult } from "../types/koalament";
+import { IMarkAsReadParams, IComment, IReadCommentsReadParams, IPaginationResult, IFollowParams, IInboxParams, IInboxMessage } from "../types/koalament";
 import { ILayer2Params } from "koalament-layers/dist/Layer2";
 import { Utility } from "./libs/utility";
 import { IEnv } from "../types/iEnv";
 import { ENV } from "./libs/env";
+import { NotificationDataSource } from "./libs/notification";
 
 const env: IEnv = new ENV().environmets;
 const watcher: SocketIOClient.Socket = IOS(env.WATCHER_HOST);
 const dataSource: MongoDataSource = new MongoDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DATABASE_NAME, env.MONGO_TABLE_NAME, env.MONGO_DEFAULT_READ_COMMENTS_LIMIT);
+const notificationSource: NotificationDataSource = new NotificationDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DATABASE_NAME, "follow", "inbox");
 const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: env.LOG_LEVEL });
 
 function pipe(_txid: string, address: string, data: IComment, callback: (err: Error) => void): void {
@@ -105,7 +107,8 @@ function onHex(hex: string): void {
       return;
     }
     const txid: string = decodedTx.id;
-    pipe(txid, address, { ...data, ...{ created_at: createdAt } }, (err: Error) => {
+    const mixedComment: IComment = { ...data, ...{ created_at: createdAt } };
+    pipe(txid, address, mixedComment, (err: Error) => {
       if (err) {
         consoleLogger.error(err);
 
@@ -116,6 +119,39 @@ function onHex(hex: string): void {
           consoleLogger.error(err);
         }
         if (comment) {
+          let description: string;
+          let action: string;
+
+          switch (mixedComment._method) {
+            case 1: {
+              description = `${mixedComment.nickname || "unknown"} replied on \`${comment.text.slice(0, 40)}\``;
+              action = "reply";
+            } break;
+            case 2: {
+              description = `${mixedComment.nickname || "unknown"} clapped the \`${comment.text.slice(0, 40)}\``;
+              action = "clap";
+            } break;
+            case 3: {
+              description = `${mixedComment.nickname || "unknown"} boo the \`${comment.text.slice(0, 40)}\``;
+              action = "boo";
+            } break;
+            default:
+          }
+
+          if (description && action) {
+            const notifMessage: IInboxMessage = { action, text: description, date: new Date() };
+            notificationSource.store(mixedComment.key, action, description, (err: Error, followers: string[]) => {
+              if (err) {
+                consoleLogger.error(err);
+              }
+              if (followers) {
+                followers.forEach((follower_id: string) => {
+                  io.sockets.emit(`notif_${follower_id}`, notifMessage);
+                });
+              }
+            });
+          }
+
           const keys: string[] = Utility.multipleUrlAddress(comment.key);
           keys.forEach((key: string): void => {
             env.SUPPORTED_LAYERS.forEach((layer_version: number) => {
@@ -159,6 +195,42 @@ io.sockets.on("connection", (socket: IO.Socket) => {
         return;
       }
       callback(undefined, readResult);
+    });
+  });
+
+  socket.on("follow", (input: IFollowParams, callback: (err: Error) => void) => {
+    notificationSource.follow(input.userId, input.key, (err: Error) => {
+      if (err) {
+        console.log(err);
+        callback(err);
+
+        return;
+      }
+      callback(undefined);
+    });
+  });
+
+  socket.on("inbox", (input: IInboxParams, callback: (err: Error, results?: IPaginationResult<IInboxMessage>) => void) => {
+    notificationSource.inbox(input.userId, input.scrollId, input.limit, (err: Error, results: IPaginationResult<IInboxMessage>) => {
+      if (err) {
+        console.log(err);
+        callback(err);
+
+        return;
+      }
+      callback(undefined, results);
+    });
+  });
+
+  socket.on("mark_as_read", (input: IMarkAsReadParams, callback: (err: Error) => void) => {
+    notificationSource.markAsRead(input.userId, input.scrollId, (err: Error) => {
+      if (err) {
+        console.log(err);
+        callback(err);
+
+        return;
+      }
+      callback(undefined);
     });
   });
 
