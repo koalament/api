@@ -7,7 +7,7 @@ import Tracer from "tracer";
 import url from "url";
 import Http from "http";
 import { MongoDataSource } from "./libs/mongo";
-import { IMarkAsReadParams, IComment, IReadCommentsReadParams, IPaginationResult, IFollowParams, IInboxParams, IInboxMessage } from "../types/koalament";
+import { IMarkAsReadParams, IComment, IReadCommentsReadParams, IPaginationResult, IFollowParams, IInboxParams, IInboxMessage, ISocketError } from "../types/koalament";
 import { ILayer2Params } from "koalament-layers/dist/Layer2";
 import { Utility } from "./libs/utility";
 import { IEnv } from "../types/iEnv";
@@ -186,11 +186,11 @@ watcher.on(env.LISTENING_ON, (hex: string) => {
 io.sockets.on("connection", (socket: IO.Socket) => {
   console.log("CLIENTS ", Object.keys(io.sockets.connected).length);
   console.log("User connected.");
-  socket.on("read", (input: IReadCommentsReadParams, callback: (err: Error, comments?: IPaginationResult<IComment>) => void) => {
+  socket.on("read", (input: IReadCommentsReadParams, callback: (err: ISocketError, comments?: IPaginationResult<IComment>) => void) => {
     dataSource.comments(input.key, input.scrollId, input.limit, (err: Error, readResult: IPaginationResult<IComment>) => {
       if (err) {
         console.log(err);
-        callback(err);
+        callback({ error: { code: 520, message: err.message } });
 
         return;
       }
@@ -198,11 +198,21 @@ io.sockets.on("connection", (socket: IO.Socket) => {
     });
   });
 
-  socket.on("follow", (input: IFollowParams, callback: (err: Error) => void) => {
+  socket.on("follow", (input: IFollowParams, callback: (err: ISocketError) => void) => {
+    if (!input) {
+      callback({ error: { code: 400, message: "Wrong input" } });
+
+      return;
+    }
+    if (!new RegExp(/^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i).test(input.userId)) {
+      callback({ error: { code: 400, message: "Wrong userId uuid4 type." } });
+
+      return;
+    }
     notificationSource.follow(input.userId, input.key, (err: Error) => {
       if (err) {
         console.log(err);
-        callback(err);
+        callback({ error: { code: 520, message: err.message } });
 
         return;
       }
@@ -210,11 +220,11 @@ io.sockets.on("connection", (socket: IO.Socket) => {
     });
   });
 
-  socket.on("inbox", (input: IInboxParams, callback: (err: Error, results?: IPaginationResult<IInboxMessage>) => void) => {
+  socket.on("inbox", (input: IInboxParams, callback: (err: ISocketError, results?: IPaginationResult<IInboxMessage>) => void) => {
     notificationSource.inbox(input.userId, input.scrollId, input.limit, (err: Error, results: IPaginationResult<IInboxMessage>) => {
       if (err) {
         console.log(err);
-        callback(err);
+        callback({ error: { code: 520, message: err.message } });
 
         return;
       }
@@ -222,11 +232,11 @@ io.sockets.on("connection", (socket: IO.Socket) => {
     });
   });
 
-  socket.on("mark_as_read", (input: IMarkAsReadParams, callback: (err: Error) => void) => {
+  socket.on("mark_as_read", (input: IMarkAsReadParams, callback: (err: ISocketError) => void) => {
     notificationSource.markAsRead(input.userId, input.scrollId, (err: Error) => {
       if (err) {
         console.log(err);
-        callback(err);
+        callback({ error: { code: 520, message: err.message } });
 
         return;
       }

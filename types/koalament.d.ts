@@ -1,3 +1,9 @@
+export interface ISocketError {
+  error: {
+    code?: number;
+    message: string;
+  };
+}
 export interface IPaginationResult<T> {
   total: number;
   remained: number;
