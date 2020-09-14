@@ -24,7 +24,7 @@ export class NotificationDataSource {
     }
 
     public follow(userId: string, key: string, callback: (err: Error) => void): void {
-        this.followCollection.insertOne({ _id: `${userId}_${key}`, user_id: userId, key: key, created_at: new Date() }, callback);
+        this.followCollection.insertOne({ _id: `${userId}-${key}`, user_id: userId, key: key, created_at: new Date() }, callback);
     }
 
     public followers(key: string, callback: (err: Error, followers?: string[]) => void): void {
@@ -43,30 +43,44 @@ export class NotificationDataSource {
             .catch(callback);
     }
 
-    public store(key: string, action: string, description: string, callback: (err: Error, followers?: string[]) => void): void {
-        this.followCollection.aggregate<IMongoFollow>([{ $match: { key: key } }, { $project: { _id: { $concat: ["$user_id", "_", "$key", "_", action, "_", new Date().getTime().toString()] }, user_id: "$user_id", key: key, action: action, description: description, created_at: new Date() } }, { $merge: this.inboxTable }]).toArray().then((result: IMongoFollow[]) => {
-            this.followers(key, callback);
-        }).catch(callback);
+    public store(txId: string, key: string, action: string, description: string, callback: (err: Error, followers?: string[]) => void): void {
+        this.followCollection.aggregate<IMongoFollow>([{ $match: { key: key } }, { $project: { _id: { $concat: ["$user_id", "-", txId] }, tx_id: txId, user_id: "$user_id", key: key, action: action, description: description, created_at: new Date() } }, { $merge: this.inboxTable }])
+            .toArray()
+            .then(() => {
+                this.followers(key, callback);
+            }).catch(callback);
     }
 
     public inbox(userId: string, scrollId: string, limit: number, callback: (err: Error, results?: IPaginationResult<IInboxMessage>) => void): void {
-        const query: FilterQuery<any> = scrollId ? { $and: [{ user_id: userId }, { created_at: { $gt: new Date(parseInt(scrollId, 10)) } }] } : { user_id: userId };
-        this.inboxCollection.find<IMongoInbox>(query)
-            .sort({ created_at: 1 })
-            .limit(limit)
-            .toArray()
-            .then((results: IMongoInbox[]) => {
-                callback(undefined, {
-                    remained: 0,
-                    total: 0,
-                    scrollId: results.length === 0 ? scrollId : results[results.length - 1].created_at.getTime().toString(),
-                    results: results.map((inbox: IMongoInbox) =>
-                        ({
-                            action: inbox.action,
-                            text: inbox.description,
-                            date: inbox.created_at
-                        }))
-                });
+        this.inboxCollection.countDocuments({ user_id: userId })
+            .then((count: number) => {
+                const query: FilterQuery<any> = scrollId ? { $and: [{ user_id: userId }, { created_at: { $gt: new Date(parseInt(scrollId, 10)) } }] } : { user_id: userId };
+                this.inboxCollection.countDocuments(query).then((remained: number) => {
+                    remained = remained - limit;
+                    if (remained < 0) {
+                        remained = 0;
+                    }
+                    this.inboxCollection.find<IMongoInbox>(query)
+                        .sort({ created_at: 1 })
+                        .limit(limit)
+                        .toArray()
+                        .then((results: IMongoInbox[]) => {
+                            callback(undefined, {
+                                remained: remained,
+                                total: count,
+                                scrollId: results.length === 0 ? scrollId : results[results.length - 1].created_at.getTime().toString(),
+                                results: results.map((inbox: IMongoInbox) =>
+                                    ({
+                                        txId: inbox.tx_id,
+                                        action: inbox.action,
+                                        text: inbox.description,
+                                        date: inbox.created_at
+                                    }))
+                            });
+                        })
+                        .catch(callback);
+                })
+                    .catch(callback);
             })
             .catch(callback);
     }

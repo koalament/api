@@ -139,8 +139,8 @@ function onHex(hex: string): void {
           }
 
           if (description && action) {
-            const notifMessage: IInboxMessage = { action, text: description, date: new Date() };
-            notificationSource.store(mixedComment.key, action, description, (err: Error, followers: string[]) => {
+            const notifMessage: IInboxMessage = { txId: txid, action, text: description, date: mixedComment.created_at };
+            notificationSource.store(txid, mixedComment.key, action, description, (err: Error, followers: string[]) => {
               if (err) {
                 consoleLogger.error(err);
               }

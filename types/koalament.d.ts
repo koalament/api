@@ -63,6 +63,7 @@ export interface IMongoFollow {
 
 export interface IMongoInbox {
   _id: string;
+  tx_id: string;
   user_id: string;
   action: string;
   action_key: string;
@@ -71,6 +72,7 @@ export interface IMongoInbox {
 }
 
 export interface IInboxMessage {
+  txId: string;
   action: string;
   text: string;
   date: Date;
