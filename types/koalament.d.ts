@@ -66,13 +66,14 @@ export interface IMongoInbox {
   tx_id: string;
   user_id: string;
   action: string;
-  action_key: string;
+  key: string;
   description: string;
   created_at: Date;
 }
 
 export interface IInboxMessage {
   txId: string;
+  key: string;
   action: string;
   text: string;
   date: Date;

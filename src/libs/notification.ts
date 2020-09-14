@@ -72,6 +72,7 @@ export class NotificationDataSource {
                                 results: results.map((inbox: IMongoInbox) =>
                                     ({
                                         txId: inbox.tx_id,
+                                        key: inbox.key,
                                         action: inbox.action,
                                         text: inbox.description,
                                         date: inbox.created_at
