@@ -72,7 +72,7 @@ export class NotificationDataSource {
     }
 
     public markAsRead(userId: string, scrollId: string, callback: (err: Error) => void): void {
-        this.inboxCollection.deleteMany({ $and: [{ user_id: userId }, { created_at: { $gt: new Date(parseInt(scrollId, 10)) } }] })
+        this.inboxCollection.deleteMany({ $and: [{ user_id: userId }, { created_at: { $lte: new Date(parseInt(scrollId, 10)) } }] })
             .then(() => {
                 callback(undefined);
             })
