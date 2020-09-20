@@ -7,7 +7,7 @@ import Tracer from "tracer";
 import url from "url";
 import Http from "http";
 import { MongoDataSource } from "./libs/mongo";
-import { IMarkAsReadParams, IComment, IReadCommentsReadParams, IPaginationResult, IFollowParams, IInboxParams, IInboxMessage, ISocketError } from "../types/koalament";
+import { IMarkAsReadParams, IComment, IReadCommentsReadParams, IPaginationResult, IFollowParams, IInboxParams, IInboxMessage, ISocketError, IReadClaspsReadParams, IClap, IReadBoosReadParams, IBoo } from "../types/koalament";
 import { ILayer2Params } from "koalament-layers/dist/Layer2";
 import { Utility } from "./libs/utility";
 import { IEnv } from "../types/iEnv";
@@ -188,6 +188,30 @@ io.sockets.on("connection", (socket: IO.Socket) => {
   console.log("User connected.");
   socket.on("read", (input: IReadCommentsReadParams, callback: (err: ISocketError, comments?: IPaginationResult<IComment>) => void) => {
     dataSource.comments(input.key, input.scrollId, input.limit, (err: Error, readResult: IPaginationResult<IComment>) => {
+      if (err) {
+        console.log(err);
+        callback({ error: { code: 520, message: err.message } });
+
+        return;
+      }
+      callback(undefined, readResult);
+    });
+  });
+
+  socket.on("claps", (input: IReadClaspsReadParams, callback: (err: ISocketError, claps?: IPaginationResult<IClap>) => void) => {
+    dataSource.claps(input.key, input.scrollId, input.limit, (err: Error, readResult: IPaginationResult<IClap>) => {
+      if (err) {
+        console.log(err);
+        callback({ error: { code: 520, message: err.message } });
+
+        return;
+      }
+      callback(undefined, readResult);
+    });
+  });
+
+  socket.on("boos", (input: IReadBoosReadParams, callback: (err: ISocketError, boos?: IPaginationResult<IBoo>) => void) => {
+    dataSource.boos(input.key, input.scrollId, input.limit, (err: Error, readResult: IPaginationResult<IBoo>) => {
       if (err) {
         console.log(err);
         callback({ error: { code: 520, message: err.message } });

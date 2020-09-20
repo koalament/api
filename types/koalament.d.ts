@@ -53,12 +53,27 @@ export interface IComment {
   created_at: Date;
 }
 
+export interface IClap {
+  _txid: string;
+  nickname?: string;
+  created_at: Date;
+}
+
+export interface IBoo {
+  _txid: string;
+  nickname?: string;
+  created_at: Date;
+}
+
 export interface IReadCommentsReadParams {
   nickname?: string;
   key: string;
   scrollId: string;
   limit: number;
 }
+
+export type IReadClaspsReadParams = IReadCommentsReadParams;
+export type IReadBoosReadParams = IReadCommentsReadParams;
 
 export interface IFollowParams {
   userId: string;
