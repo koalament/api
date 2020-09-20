@@ -52,8 +52,8 @@ function pipe(_txid: string, address: string, data: IComment, callback: (err: Er
       dataSource.insertComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, flag, callback);
     } break;
     case 1: dataSource.replyComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
-    case 2: dataSource.clapComment(_txid, data.key, callback); break;
-    case 3: dataSource.booComment(_txid, data.key, callback); break;
+    case 2: dataSource.clapComment(_txid, data.nickname, data.key, data.created_at, data._layer, callback); break;
+    case 3: dataSource.booComment(_txid, data.nickname, data.key, data.created_at, data._layer, callback); break;
     case 4: dataSource.reportComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
     default: callback(new Error('Unknown method "data._method"'));
   }

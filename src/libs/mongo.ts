@@ -1,10 +1,12 @@
 import { MongoClient, Collection } from "mongodb";
 
-import { IMongoComment, IComment, IPaginationResult } from "../../types/koalament";
+import { IMongoComment, IComment, IPaginationResult, IMongoClap, IMongoBoo } from "../../types/koalament";
 import { Utility } from "./utility";
 
 export class MongoDataSource {
-  private commentsCollection: Collection;
+  private commentsCollection: Collection<IMongoComment>;
+  private clapCollection: Collection<IMongoClap>;
+  private booCollection: Collection<IMongoBoo>;
   private ready: boolean = false;
   private readonly fetchLimit: number;
   public isReady(): boolean {
@@ -18,6 +20,8 @@ export class MongoDataSource {
       }
       console.log("Connected successfully to server");
       this.commentsCollection = client.db(database).collection(table);
+      this.clapCollection = client.db(database).collection("clap");
+      this.booCollection = client.db(database).collection("boo");
       this.ready = true;
     });
   }
@@ -80,12 +84,20 @@ export class MongoDataSource {
     this.commentsCollection.insertOne(comment, callback);
   }
 
-  public clapComment(txid: string, key: string, callback: (err: Error) => void): void {
-    this.commentsCollection.updateOne({ _id: key }, { $addToSet: { claps: txid } }, callback);
+  public clapComment(txid: string, nickname: string, key: string, createdAt: Date, _layer: number, callback: (err: Error) => void): void {
+    const clap: IMongoClap = { _id: txid, nickname, key, created_at: createdAt, _layer };
+    this.clapCollection.insertOne(clap).then(() => {
+      this.commentsCollection.updateOne({ _id: key }, { $addToSet: { claps: txid } }, callback);
+    }).catch(callback);
   }
-  public booComment(txid: string, key: string, callback: (err: Error) => void): void {
-    this.commentsCollection.updateOne({ _id: key }, { $addToSet: { boos: txid } }, callback);
+
+  public booComment(txid: string, nickname: string, key: string, createdAt: Date, _layer: number, callback: (err: Error) => void): void {
+    const boo: IMongoBoo = { _id: txid, nickname, key, created_at: createdAt, _layer };
+    this.booCollection.insertOne(boo).then(() => {
+      this.commentsCollection.updateOne({ _id: key }, { $addToSet: { boos: txid } }, callback);
+    }).catch(callback);
   }
+
   public replyComment(txid: string, address: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {
     this.commentsCollection.updateOne({ _id: key }, { $addToSet: { replies: txid } }, (err: Error) => {
       if (err) {

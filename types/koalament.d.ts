@@ -23,6 +23,22 @@ export interface IMongoComment {
   created_at: Date;
 }
 
+export interface IMongoClap {
+  _id: string;
+  _layer: number;
+  key: string;
+  nickname?: string;
+  created_at: Date;
+}
+
+export interface IMongoBoo {
+  _id: string;
+  _layer: number;
+  key: string;
+  nickname?: string;
+  created_at: Date;
+}
+
 export interface IComment {
   _txid: string;
   _layer: number;
