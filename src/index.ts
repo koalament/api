@@ -1,6 +1,7 @@
 import IOS from "socket.io-client";
 import IO from "socket.io";
 import Url from "url-parse";
+import { CryptoPrice } from "crypto-state";
 import { Transaction } from "bsv";
 import { layer2 } from "koalament-layers";
 import Tracer from "tracer";
@@ -15,12 +16,15 @@ import { ENV } from "./libs/env";
 import { NotificationDataSource } from "./libs/notification";
 
 const env: IEnv = new ENV().environmets;
+const cryptoPrice: CryptoPrice = new CryptoPrice();
+//Resolve injected class
+cryptoPrice.prices();
 const watcher: SocketIOClient.Socket = IOS(env.WATCHER_HOST);
 const dataSource: MongoDataSource = new MongoDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DATABASE_NAME, env.MONGO_TABLE_NAME, env.MONGO_DEFAULT_READ_COMMENTS_LIMIT);
 const notificationSource: NotificationDataSource = new NotificationDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DATABASE_NAME, "follow", "inbox");
 const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: env.LOG_LEVEL });
 
-function pipe(_txid: string, address: string, data: IComment, callback: (err: Error) => void): void {
+function pipe(_txid: string, paidUs: number, address: string, data: IComment, callback: (err: Error) => void): void {
   consoleLogger.info(_txid, data);
   if (data.nickname && data.nickname.length > env.MAXIMUM_NICKNAME_LENGTH_BYTES) {
     callback(new Error("Maximum nickname length exceeded."));
@@ -34,6 +38,11 @@ function pipe(_txid: string, address: string, data: IComment, callback: (err: Er
   }
   switch (data._method) {
     case 0: {
+      if (paidUs !== -1 && env.MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING.comment && paidUs < env.MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING.comment) {
+        callback(new Error("Minimum pay not met."));
+
+        return;
+      }
       const url: Url = new Url(data.key);
       let flag: boolean = false;
       if (url.hostname) {
@@ -51,10 +60,38 @@ function pipe(_txid: string, address: string, data: IComment, callback: (err: Er
 
       dataSource.insertComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, flag, callback);
     } break;
-    case 1: dataSource.replyComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
-    case 2: dataSource.clapComment(_txid, data.nickname, data.key, data.created_at, data._layer, callback); break;
-    case 3: dataSource.booComment(_txid, data.nickname, data.key, data.created_at, data._layer, callback); break;
-    case 4: dataSource.reportComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback); break;
+    case 1: {
+      if (paidUs !== -1 && env.MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING.reply && paidUs < env.MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING.reply) {
+        callback(new Error("Minimum pay not met."));
+
+        return;
+      }
+      dataSource.replyComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback);
+    } break;
+    case 2: {
+      if (paidUs !== -1 && env.MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING.clap && paidUs < env.MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING.clap) {
+        callback(new Error("Minimum pay not met."));
+
+        return;
+      }
+      dataSource.clapComment(_txid, data.nickname, data.key, data.created_at, data._layer, callback);
+    } break;
+    case 3: {
+      if (paidUs !== -1 && env.MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING.boo && paidUs < env.MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING.boo) {
+        callback(new Error("Minimum pay not met."));
+
+        return;
+      }
+      dataSource.booComment(_txid, data.nickname, data.key, data.created_at, data._layer, callback);
+    } break;
+    case 4: {
+      if (paidUs !== -1 && env.MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING.report && paidUs < env.MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING.report) {
+        callback(new Error("Minimum pay not met."));
+
+        return;
+      }
+      dataSource.reportComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, callback);
+    } break;
     default: callback(new Error('Unknown method "data._method"'));
   }
 }
@@ -82,12 +119,20 @@ function onHex(hex: string): void {
   }
   const address: string = decodedTx.inputs[0].script.toAddress().toString();
   let opOutput: string;
+  let paidUs: number = 0;
   decodedTx.outputs.forEach((out: Transaction.Output) => {
     if (out.satoshis === 0 && out.script.toASM().indexOf("0 OP_RETURN") === 0) {
       opOutput = out.script.toASM();
     }
+    if (out.script.toAddress().toString() === env.LISTENING_ON_ADDRESS) {
+      const BSVUSD: number = cryptoPrice.price("BSVUSD");
+      paidUs = BSVUSD ? (BSVUSD * out.satoshis) / 1000000 : -1;
+    }
   });
   if (!opOutput) {
+    return;
+  }
+  if (paidUs === 0) {
     return;
   }
   const hexSplitted: string[] = opOutput.split(" ");
@@ -108,7 +153,7 @@ function onHex(hex: string): void {
     }
     const txid: string = decodedTx.id;
     const mixedComment: IComment = { ...data, ...{ created_at: createdAt } };
-    pipe(txid, address, mixedComment, (err: Error) => {
+    pipe(txid, paidUs, address, mixedComment, (err: Error) => {
       if (err) {
         consoleLogger.error(err);
 
@@ -179,7 +224,7 @@ function onHex(hex: string): void {
     });
   });
 }
-watcher.on(env.LISTENING_ON, (hex: string) => {
+watcher.on(`address.out:${env.LISTENING_ON_ADDRESS}`, (hex: string) => {
   onHex(hex);
 });
 

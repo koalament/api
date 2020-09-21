@@ -12,9 +12,10 @@
   "license": "ISC",
   "dependencies": {
     "@types/socket.io": "^2.1.4",
-    "bsv": "^1.5.3",
-    "koalament-layers": "^2.2.0-beta.8",
-    "mongodb": "^3.5.2",
+    "bsv": "^1.5.4",
+    "crypto-state": "0.0.1-beta.7",
+    "koalament-layers": "^2.2.0-beta.10",
+    "mongodb": "^3.6.2",
     "socket.io": "^2.3.0",
     "socket.io-client": "^2.3.0",
     "tracer": "^1.0.2",

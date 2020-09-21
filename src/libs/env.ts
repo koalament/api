@@ -1,10 +1,19 @@
 import { IEnv } from "../../types/iEnv";
-
+import qs from "querystring";
 export class ENV {
     public environmets: IEnv;
     public constructor() {
         this.environmets = ENV.read();
     }
+    private static Map<I, O>(input: { [key: string]: I }, mapper: (inp: I) => O): { [key: string]: O } {
+        const result: { [key: string]: O } = {};
+        for (const key of Object.keys(input)) {
+            result[key] = mapper(input[key]);
+        }
+
+        return result;
+    }
+
     private static Setter(envParam: string, type: string, defaultValue?: string): string {
         let value: string | undefined = process.env[envParam];
         if (value === undefined && defaultValue !== undefined) {
@@ -42,7 +51,8 @@ export class ENV {
             MAXIMUM_COMMENT_LENGTH_BYTES: parseInt(ENV.Setter("MAXIMUM_COMMENT_LENGTH_BYTES", "number"), 10),
             MAXIMUM_NICKNAME_LENGTH_BYTES: parseInt(ENV.Setter("MAXIMUM_NUCKNAME_LENGTH_BYTES", "number"), 10),
             IGNORE_DOMAINS: ENV.Setter("IGNORE_DOMAINS", "string").split(",").map((p: string) => p.trim()).filter((p: string) => p !== ""),
-            LISTENING_ON: ENV.Setter("LISTENING_ON", "string"),
+            LISTENING_ON_ADDRESS: ENV.Setter("LISTENING_ON_ADDRESS", "string"),
+            MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING: ENV.Map<string, number>(qs.parse(ENV.Setter("MINIMUM_ACTION_PAY_AS_CENT_FOR_LISTENING", "string")) as { [key: string]: string }, (inp: string): number => (parseFloat(inp))),
             EXPRESS_HOST: ENV.Setter("EXPRESS_HOST", "string"),
             EXPRESS_PORT: parseInt(ENV.Setter("EXPRESS_PORT", "number"), 10),
             WATCHER_HOST: ENV.Setter("WATCHER_HOST", "string")
