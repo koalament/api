@@ -76,24 +76,24 @@ export type IReadClaspsReadParams = IReadCommentsReadParams;
 export type IReadBoosReadParams = IReadCommentsReadParams;
 
 export interface IFollowParams {
-  userId: string;
+  userToken: string;
   key: string;
 }
 
 export interface IInboxParams {
-  userId: string;
+  userToken: string;
   scrollId: string;
   limit: number;
 }
 
 export interface IMarkAsReadParams {
-  userId: string;
+  userToken: string;
   scrollId: string;
 }
 
 export interface IMongoFollow {
   _id: string;
-  user_id: string;
+  user_token: string;
   key: string;
   created_at: Date;
 }
@@ -101,7 +101,7 @@ export interface IMongoFollow {
 export interface IMongoInbox {
   _id: string;
   tx_id: string;
-  user_id: string;
+  user_token: string;
   action: string;
   key: string;
   description: string;

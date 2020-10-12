@@ -14,6 +14,7 @@ import { Utility } from "./libs/utility";
 import { IEnv } from "../types/iEnv";
 import { ENV } from "./libs/env";
 import { NotificationDataSource } from "./libs/notification";
+import { Firebase } from "./libs/firbase-notification";
 
 const env: IEnv = new ENV().environmets;
 const cryptoPrice: CryptoPrice = new CryptoPrice();
@@ -22,6 +23,7 @@ cryptoPrice.prices();
 const watcher: SocketIOClient.Socket = IOS(env.WATCHER_HOST);
 const dataSource: MongoDataSource = new MongoDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DATABASE_NAME, env.MONGO_TABLE_NAME, env.MONGO_DEFAULT_READ_COMMENTS_LIMIT);
 const notificationSource: NotificationDataSource = new NotificationDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DATABASE_NAME, "follow", "inbox");
+const firebase: Firebase = new Firebase(env.FIREBASE_SERVICE_ACCOUNT, env.FIREBASE_DATABASE_URL);
 const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: env.LOG_LEVEL });
 
 function pipe(_txid: string, paidUs: number, address: string, data: IComment, callback: (err: Error) => void): void {
@@ -190,9 +192,10 @@ function onHex(hex: string): void {
                 consoleLogger.error(err);
               }
               if (followers) {
-                followers.forEach((follower_id: string) => {
-                  io.sockets.emit(`notif_${follower_id}`, notifMessage);
-                });
+                firebase.sendNotif(followers, { title: action, body: description }, { txId: notifMessage.txId, key: notifMessage.key, date: notifMessage.date.toISOString() });
+                // followers.forEach((follower_id: string) => {
+                //   io.sockets.emit(`notif_${follower_id}`, notifMessage);
+                // });
               }
             });
           }
@@ -273,12 +276,12 @@ io.sockets.on("connection", (socket: IO.Socket) => {
 
       return;
     }
-    if (!new RegExp(/^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i).test(input.userId)) {
-      callback({ error: { code: 400, message: "Wrong userId uuid4 type." } });
+    // if (!new RegExp(/^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i).test(input.userId)) {
+    //   callback({ error: { code: 400, message: "Wrong userId uuid4 type." } });
 
-      return;
-    }
-    notificationSource.follow(input.userId, input.key, (err: Error) => {
+    //   return;
+    // }
+    notificationSource.follow(input.userToken, input.key, (err: Error) => {
       if (err) {
         console.log(err);
         callback({ error: { code: 520, message: err.message } });
@@ -290,7 +293,7 @@ io.sockets.on("connection", (socket: IO.Socket) => {
   });
 
   socket.on("inbox", (input: IInboxParams, callback: (err: ISocketError, results?: IPaginationResult<IInboxMessage>) => void) => {
-    notificationSource.inbox(input.userId, input.scrollId, input.limit, (err: Error, results: IPaginationResult<IInboxMessage>) => {
+    notificationSource.inbox(input.userToken, input.scrollId, input.limit, (err: Error, results: IPaginationResult<IInboxMessage>) => {
       if (err) {
         console.log(err);
         callback({ error: { code: 520, message: err.message } });
@@ -302,7 +305,7 @@ io.sockets.on("connection", (socket: IO.Socket) => {
   });
 
   socket.on("mark_as_read", (input: IMarkAsReadParams, callback: (err: ISocketError) => void) => {
-    notificationSource.markAsRead(input.userId, input.scrollId, (err: Error) => {
+    notificationSource.markAsRead(input.userToken, input.scrollId, (err: Error) => {
       if (err) {
         console.log(err);
         callback({ error: { code: 520, message: err.message } });

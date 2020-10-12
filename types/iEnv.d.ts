@@ -1,5 +1,8 @@
+import { ServiceAccount } from "firebase-admin";
 export interface IEnv {
     LOG_LEVEL: string;
+    FIREBASE_DATABASE_URL: string;
+    FIREBASE_SERVICE_ACCOUNT: ServiceAccount;
     MONGO_COMMENT_STORE: string;
     MONGO_DATABASE_NAME: string;
     MONGO_TABLE_NAME: string;

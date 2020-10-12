@@ -1,5 +1,6 @@
 import { IEnv } from "../../types/iEnv";
 import qs from "querystring";
+import { ServiceAccount } from "firebase-admin";
 export class ENV {
     public environmets: IEnv;
     public constructor() {
@@ -41,6 +42,8 @@ export class ENV {
     private static read(): IEnv {
         const env: IEnv = {
             LOG_LEVEL: ENV.Setter("LOG_LEVEL", "string"),
+            FIREBASE_DATABASE_URL: ENV.Setter("FIREBASE_DATABASE_URL", "string"),
+            FIREBASE_SERVICE_ACCOUNT: JSON.parse(Buffer.from(ENV.Setter("FIREBASE_PRIVATE_KEY", "string"), "base64").toString("utf8")) as ServiceAccount,
             MONGO_COMMENT_STORE: ENV.Setter("MONGO_COMMENT_STORE", "string"),
             MONGO_DATABASE_NAME: ENV.Setter("MONGO_DATABASE_NAME", "string"),
             MONGO_TABLE_NAME: ENV.Setter("MONGO_TABLE_NAME", "string"),

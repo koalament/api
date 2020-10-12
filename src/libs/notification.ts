@@ -23,20 +23,20 @@ export class NotificationDataSource {
         });
     }
 
-    public follow(userId: string, key: string, callback: (err: Error) => void): void {
-        this.followCollection.insertOne({ _id: `${userId}-${key}`, user_id: userId, key: key, created_at: new Date() }, callback);
+    public follow(userToken: string, key: string, callback: (err: Error) => void): void {
+        this.followCollection.insertOne({ _id: `${userToken}-${key}`, user_token: userToken, key: key, created_at: new Date() }, callback);
     }
 
     public followers(key: string, callback: (err: Error, followers?: string[]) => void): void {
         this.followCollection.find<IMongoFollow>({ key: key }).toArray()
             .then((follows: IMongoFollow[]) => {
-                callback(undefined, follows.map((p: IMongoFollow) => p.user_id));
+                callback(undefined, follows.map((p: IMongoFollow) => p.user_token));
             })
             .catch(callback);
     }
 
-    public unreadCount(userId: string, callback: (err: Error, count?: number) => void): void {
-        this.inboxCollection.countDocuments({ user_id: userId })
+    public unreadCount(userToken: string, callback: (err: Error, count?: number) => void): void {
+        this.inboxCollection.countDocuments({ user_token: userToken })
             .then((count: number) => {
                 callback(undefined, count);
             })
@@ -44,17 +44,17 @@ export class NotificationDataSource {
     }
 
     public store(txId: string, key: string, action: string, description: string, callback: (err: Error, followers?: string[]) => void): void {
-        this.followCollection.aggregate<IMongoFollow>([{ $match: { key: key } }, { $project: { _id: { $concat: ["$user_id", "-", txId] }, tx_id: txId, user_id: "$user_id", key: key, action: action, description: description, created_at: new Date() } }, { $merge: this.inboxTable }])
+        this.followCollection.aggregate<IMongoFollow>([{ $match: { key: key } }, { $project: { _id: { $concat: ["$user_token", "-", txId] }, tx_id: txId, user_token: "$user_token", key: key, action: action, description: description, created_at: new Date() } }, { $merge: this.inboxTable }])
             .toArray()
             .then(() => {
                 this.followers(key, callback);
             }).catch(callback);
     }
 
-    public inbox(userId: string, scrollId: string, limit: number, callback: (err: Error, results?: IPaginationResult<IInboxMessage>) => void): void {
-        this.inboxCollection.countDocuments({ user_id: userId })
+    public inbox(userToken: string, scrollId: string, limit: number, callback: (err: Error, results?: IPaginationResult<IInboxMessage>) => void): void {
+        this.inboxCollection.countDocuments({ userToken: userToken })
             .then((count: number) => {
-                const query: FilterQuery<any> = scrollId ? { $and: [{ user_id: userId }, { created_at: { $gt: new Date(parseInt(scrollId, 10)) } }] } : { user_id: userId };
+                const query: FilterQuery<any> = scrollId ? { $and: [{ user_token: userToken }, { created_at: { $gt: new Date(parseInt(scrollId, 10)) } }] } : { user_token: userToken };
                 this.inboxCollection.countDocuments(query).then((remained: number) => {
                     remained = remained - limit;
                     if (remained < 0) {
@@ -86,8 +86,8 @@ export class NotificationDataSource {
             .catch(callback);
     }
 
-    public markAsRead(userId: string, scrollId: string, callback: (err: Error) => void): void {
-        this.inboxCollection.deleteMany({ $and: [{ user_id: userId }, { created_at: { $lte: new Date(parseInt(scrollId, 10)) } }] })
+    public markAsRead(userToken: string, scrollId: string, callback: (err: Error) => void): void {
+        this.inboxCollection.deleteMany({ $and: [{ userToken: userToken }, { created_at: { $lte: new Date(parseInt(scrollId, 10)) } }] })
             .then(() => {
                 callback(undefined);
             })
