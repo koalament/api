@@ -191,7 +191,7 @@ function onHex(hex: string): void {
               if (err) {
                 consoleLogger.error(err);
               }
-              if (followers) {
+              if (followers && followers.length > 0) {
                 firebase.sendNotif(followers, { title: action, body: description }, { txId: notifMessage.txId, key: notifMessage.key, date: notifMessage.date.toISOString() });
                 // followers.forEach((follower_id: string) => {
                 //   io.sockets.emit(`notif_${follower_id}`, notifMessage);
