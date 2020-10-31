@@ -4,17 +4,33 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc -p tsconfig.base.json",
+    "precommit": "lint-staged",
+    "tslint": "tslint -c tslint.json -p tsconfig.development.json"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "async": "^3.1.1",
-    "bitcoinjs-lib": "^5.1.7",
-    "koalament-layers": "^1.0.0",
-    "mongodb": "^3.5.2",
+    "@types/socket.io": "^2.1.4",
+    "bsv": "^1.5.4",
+    "crypto-state": "0.0.1-beta.7",
+    "firebase-admin": "^9.2.0",
+    "koalament-layers": "^2.2.0-beta.10",
+    "mongodb": "^3.6.2",
     "socket.io": "^2.3.0",
     "socket.io-client": "^2.3.0",
-    "url": "^0.11.0"
+    "tracer": "^1.0.2",
+    "url": "^0.11.0",
+    "url-parse": "^1.4.7"
+  },
+  "devDependencies": {
+    "@types/mongodb": "^3.3.16",
+    "@types/socket.io-client": "^1.4.32",
+    "@types/url-parse": "^1.4.3",
+    "husky": "^0.14.3",
+    "lint-staged": "^7.2.2",
+    "source-map-support": "^0.5.9",
+    "tslint": "^5.11.0",
+    "typescript": "^3.0.3"
   }
 }
