@@ -67,39 +67,40 @@ export class MongoDataSource {
 
   public claps(key: string, scrollId: string, limit: number, callback: (err: Error, claps?: IPaginationResult<IClap>) => void): void {
     this.paginate<IMongoClap, IClap>(this.clapCollection, key, scrollId, limit, ((input: IMongoClap[]): IClap[] => input.map((p: IMongoClap) =>
-      ({
-        _txid: p._id,
-        _layer: p._layer,
-        nickname: p.nickname || "unknown",
-        created_at: p.created_at
-      }))), callback);
+    ({
+      _txid: p._id,
+      _layer: p._layer,
+      nickname: p.nickname || "unknown",
+      created_at: p.created_at
+    }))), callback);
 
   }
 
   public boos(key: string, scrollId: string, limit: number, callback: (err: Error, boos?: IPaginationResult<IBoo>) => void): void {
     this.paginate<IMongoBoo, IBoo>(this.booCollection, key, scrollId, limit, ((input: IMongoBoo[]): IBoo[] => input.map((p: IMongoBoo) =>
-      ({
-        _txid: p._id,
-        _layer: p._layer,
-        nickname: p.nickname || "unknown",
-        created_at: p.created_at
-      }))), callback);
+    ({
+      _txid: p._id,
+      _layer: p._layer,
+      nickname: p.nickname || "unknown",
+      created_at: p.created_at
+    }))), callback);
 
   }
 
   public comments(key: string, scrollId: string, limit: number, callback: (err: Error, comments?: IPaginationResult<IComment>) => void): void {
     this.paginate<IMongoComment, IComment>(this.commentsCollection, key, scrollId, limit, ((input: IMongoComment[]): IComment[] => input.map((p: IMongoComment) =>
-      ({
-        _txid: p._id,
-        _layer: p._layer,
-        text: p.text,
-        nickname: p.nickname || "unknown",
-        address: p.address,
-        replies: p.replies ? { results: [], total: p.replies.length, remained: p.replies.length } : { results: [], total: 0, remained: 0 },
-        claps: p.claps ? { results: [], total: p.claps.length, remained: p.claps.length } : { results: [], total: 0, remained: 0 },
-        boos: p.boos ? { results: [], total: p.boos.length, remained: p.boos.length } : { results: [], total: 0, remained: 0 },
-        created_at: p.created_at
-      }))), callback);
+    ({
+      _txid: p._id,
+      _layer: p._layer,
+      text: p.text,
+      nickname: p.nickname || "unknown",
+      address: p.address,
+      rootKey: p.root_key,
+      replies: p.replies ? { results: [], total: p.replies.length, remained: p.replies.length } : { results: [], total: 0, remained: 0 },
+      claps: p.claps ? { results: [], total: p.claps.length, remained: p.claps.length } : { results: [], total: 0, remained: 0 },
+      boos: p.boos ? { results: [], total: p.boos.length, remained: p.boos.length } : { results: [], total: 0, remained: 0 },
+      created_at: p.created_at
+    }))), callback);
 
     // const fromDate: Date = scrollId ? new Date(parseInt(Buffer.from(scrollId, "base64").toString("ascii"), 10)) : new Date();
     // const keys: string[] = Utility.multipleUrlAddress(key);
@@ -152,11 +153,18 @@ export class MongoDataSource {
   }
 
   public insertComment(txid: string, address: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, flag: boolean, callback: (err: Error) => void): void {
-    const comment: IMongoComment = { _id: txid, key, text, address, created_at: createdAt, _layer: layer };
-    if (nickname) {
-      comment.nickname = nickname;
-    }
-    this.commentsCollection.insertOne(comment, callback);
+    this.commentsCollection.findOne({ _id: key }, (err: Error, parentComment: IMongoComment) => {
+      if (err) {
+        callback(err);
+
+        return;
+      }
+      const comment: IMongoComment = { _id: txid, key, text, address, root_key: (parentComment && parentComment.root_key) || key, created_at: createdAt, _layer: layer };
+      if (nickname) {
+        comment.nickname = nickname;
+      }
+      this.commentsCollection.insertOne(comment, callback);
+    });
   }
 
   public clapComment(txid: string, nickname: string, key: string, createdAt: Date, _layer: number, callback: (err: Error) => void): void {
@@ -210,6 +218,7 @@ export class MongoDataSource {
         key: comment.key,
         text: comment.text,
         nickname: comment.nickname || "unknown",
+        rootKey: comment.root_key,
         address: comment.address,
         replies: comment.replies ? { results: [], total: comment.replies.length, remained: comment.replies.length } : { results: [], total: 0, remained: 0 },
         claps: comment.claps ? { results: [], total: comment.claps.length, remained: comment.claps.length } : { results: [], total: 0, remained: 0 },

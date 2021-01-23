@@ -17,6 +17,7 @@ export interface IMongoComment {
   nickname?: string;
   key: string;
   text: string;
+  root_key?: string;
   replies?: string[];
   claps?: string[];
   boos?: string[];
@@ -47,6 +48,7 @@ export interface IComment {
   key?: string;
   text: string;
   address: string;
+  rootKey: string;
   replies?: IPaginationResult<any>;
   claps?: IPaginationResult<any>;
   boos?: IPaginationResult<any>;
