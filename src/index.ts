@@ -193,9 +193,6 @@ function onHex(hex: string): void {
               }
               if (followers && followers.length > 0) {
                 firebase.sendNotif(followers, { title: action, body: description }, { txId: notifMessage.txId, key: notifMessage.key, date: notifMessage.date.toISOString() });
-                // followers.forEach((follower_id: string) => {
-                //   io.sockets.emit(`notif_${follower_id}`, notifMessage);
-                // });
               }
             });
           }
@@ -276,11 +273,6 @@ io.sockets.on("connection", (socket: IO.Socket) => {
 
       return;
     }
-    // if (!new RegExp(/^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i).test(input.userId)) {
-    //   callback({ error: { code: 400, message: "Wrong userId uuid4 type." } });
-
-    //   return;
-    // }
     notificationSource.follow(input.userToken, input.key, (err: Error) => {
       if (err) {
         console.log(err);
