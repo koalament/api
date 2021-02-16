@@ -1,12 +1,14 @@
 import { MongoClient, Collection } from "mongodb";
-
-import { IMongoComment, IComment, IPaginationResult, IMongoClap, IMongoBoo, IClap, IBoo } from "../../types/koalament";
+import { IMongoComment, IComment, IPaginationResult, IMongoClap, IMongoBoo, IClap, IBoo, IMongoUser } from "../../types/koalament";
 import { Utility } from "./utility";
+import twitter from "twitter-text";
+import { IExtractComment } from "../../types/global";
 
 export class MongoDataSource {
   private commentsCollection: Collection<IMongoComment>;
   private clapCollection: Collection<IMongoClap>;
   private booCollection: Collection<IMongoBoo>;
+  private userCollection: Collection<IMongoUser>;
   private ready: boolean = false;
   private readonly fetchLimit: number;
   public isReady(): boolean {
@@ -22,8 +24,19 @@ export class MongoDataSource {
       this.commentsCollection = client.db(database).collection(table);
       this.clapCollection = client.db(database).collection("clap");
       this.booCollection = client.db(database).collection("boo");
+      this.userCollection = client.db(database).collection("user");
       this.ready = true;
     });
+  }
+
+  private extractComment(text: string): IExtractComment {
+    const users: string[] = twitter.extractMentions(text);
+    const hashtags: string[] = twitter.extractHashtags(text);
+
+    return {
+      users,
+      hashtags
+    };
   }
 
   public paginate<M, T>(collection: Collection, key: string, scrollId: string, limit: number, mapperr: (input: M[]) => T[], callback: (err: Error, comments?: IPaginationResult<T>) => void): void {
@@ -65,6 +78,25 @@ export class MongoDataSource {
     });
   }
 
+  public usersIdByUsernames(usernames: string[], callback: (err: Error, userIds?: { [key: string]: string }) => void): void {
+    if (usernames.length === 0) {
+      callback(undefined);
+
+      return;
+    }
+    this.userCollection.find({ username: { $in: usernames } })
+      .toArray()
+      .then((users: IMongoUser[]) => {
+        const results: { [key: string]: string } = {};
+        users.forEach((user: IMongoUser) => {
+          results[user._id] = user.username;
+        });
+        callback(undefined, results);
+      }).catch((err: Error) => {
+        callback(err);
+      });
+  }
+
   public claps(key: string, scrollId: string, limit: number, callback: (err: Error, claps?: IPaginationResult<IClap>) => void): void {
     this.paginate<IMongoClap, IClap>(this.clapCollection, key, scrollId, limit, ((input: IMongoClap[]): IClap[] => input.map((p: IMongoClap) =>
     ({
@@ -104,17 +136,20 @@ export class MongoDataSource {
   }
 
   public insertComment(txid: string, address: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, flag: boolean, callback: (err: Error) => void): void {
-    this.commentsCollection.findOne({ _id: key }, (err: Error, parentComment: IMongoComment) => {
-      if (err) {
-        callback(err);
+    const extractComment: IExtractComment = this.extractComment(text);
+    this.usersIdByUsernames(extractComment.users, (err: Error, usersIds: { [key: string]: string }) => {
+      this.commentsCollection.findOne({ _id: key }, (err: Error, parentComment: IMongoComment) => {
+        if (err) {
+          callback(err);
 
-        return;
-      }
-      const comment: IMongoComment = { _id: txid, key, text, address, root_key: (parentComment && parentComment.root_key) || key, created_at: createdAt, _layer: layer };
-      if (nickname) {
-        comment.nickname = nickname;
-      }
-      this.commentsCollection.insertOne(comment, callback);
+          return;
+        }
+        const comment: IMongoComment = { _id: txid, key, text, address, root_key: (parentComment && parentComment.root_key) || key, hashtags: extractComment.hashtags, mentions: usersIds || {}, created_at: createdAt, _layer: layer };
+        if (nickname) {
+          comment.nickname = nickname;
+        }
+        this.commentsCollection.insertOne(comment, callback);
+      });
     });
   }
 
@@ -143,7 +178,7 @@ export class MongoDataSource {
     });
   }
   public reportComment(txid: string, address: string, nickname: string, key: string, text: string, createdAt: Date, layer: number, callback: (err: Error) => void): void {
-    const reportComment: IMongoComment = { _id: txid, key: key, text: text, address: address, created_at: createdAt, _layer: layer };
+    const reportComment: IMongoComment = { _id: txid, key: key, text: text, address: address, hashtags: [], mentions: {}, created_at: createdAt, _layer: layer };
     if (nickname) {
       reportComment.nickname = nickname;
     }

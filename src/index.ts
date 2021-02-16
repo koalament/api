@@ -59,7 +59,6 @@ function pipe(_txid: string, paidUs: number, address: string, data: IComment, ca
           }
         });
       }
-
       dataSource.insertComment(_txid, address, data.nickname, data.key, data.text, data.created_at, data._layer, flag, callback);
     } break;
     case 1: {

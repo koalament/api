@@ -21,6 +21,8 @@ export interface IMongoComment {
   replies?: string[];
   claps?: string[];
   boos?: string[];
+  mentions: { [key: string]: string };
+  hashtags: string[];
   created_at: Date;
 }
 
@@ -40,6 +42,20 @@ export interface IMongoBoo {
   created_at: Date;
 }
 
+export interface IMongoUser {
+  _id: string;
+  email: string;
+  paymail: string;
+  username: string;
+  avatar: string;
+  createdAt: Date;
+}
+
+export interface IUser {
+  _id: string;
+  username: string;
+}
+
 export interface IComment {
   _txid: string;
   _layer: number;
@@ -52,6 +68,8 @@ export interface IComment {
   replies?: IPaginationResult<any>;
   claps?: IPaginationResult<any>;
   boos?: IPaginationResult<any>;
+  mentions?: { [key: string]: string };
+  hashtags?: string[];
   created_at: Date;
 }
 
