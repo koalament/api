@@ -15,7 +15,7 @@ import { IEnv } from "../types/iEnv";
 import { ENV } from "./libs/env";
 import { NotificationDataSource } from "./libs/notification";
 import { Firebase } from "./libs/firbase-notification";
-
+import * as request from "request";
 const env: IEnv = new ENV().environmets;
 const cryptoPrice: CryptoPrice = new CryptoPrice();
 //Resolve injected class
@@ -25,6 +25,21 @@ const dataSource: MongoDataSource = new MongoDataSource(env.MONGO_COMMENT_STORE,
 const notificationSource: NotificationDataSource = new NotificationDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DATABASE_NAME, "follow", "inbox");
 const firebase: Firebase = new Firebase(env.FIREBASE_SERVICE_ACCOUNT, env.FIREBASE_DATABASE_URL);
 const consoleLogger: Tracer.Tracer.Logger = Tracer.colorConsole({ level: env.LOG_LEVEL });
+
+async function getHex(txid: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    request.get(`https://api.bitails.net/download/tx/${txid}`, {encoding: null}, (err, resp, body: Buffer) => {
+      if (err) {
+        return reject(err);
+      }
+      if (resp.statusCode !== 200) {
+        return reject(resp.statusMessage);
+      }
+
+      return resolve(body.toString("hex"));
+    });
+  });
+}
 
 function pipe(_txid: string, paidUs: number, address: string, data: IComment, callback: (err: Error) => void): void {
   consoleLogger.info(_txid, data);
@@ -223,7 +238,9 @@ function onHex(hex: string): void {
     });
   });
 }
-watcher.on(`address.out:${env.LISTENING_ON_ADDRESS}`, (hex: string) => {
+
+watcher.on(`lock-address-${env.LISTENING_ON_ADDRESS}`, async (details: {txid: string}) => {
+  const hex = await getHex(details.txid);
   onHex(hex);
 });
 
