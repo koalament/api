@@ -20,7 +20,7 @@ const env: IEnv = new ENV().environmets;
 const cryptoPrice: CryptoPrice = new CryptoPrice();
 //Resolve injected class
 cryptoPrice.prices();
-const watcher: SocketIOClient.Socket = IOS(env.WATCHER_HOST);
+const watcher: SocketIOClient.Socket = IOS(env.WATCHER_HOST, { transports: ['websocket', 'polling'] });
 const dataSource: MongoDataSource = new MongoDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DATABASE_NAME, env.MONGO_TABLE_NAME, env.MONGO_DEFAULT_READ_COMMENTS_LIMIT);
 const notificationSource: NotificationDataSource = new NotificationDataSource(env.MONGO_COMMENT_STORE, env.MONGO_DATABASE_NAME, "follow", "inbox");
 const firebase: Firebase = new Firebase(env.FIREBASE_SERVICE_ACCOUNT, env.FIREBASE_DATABASE_URL);
